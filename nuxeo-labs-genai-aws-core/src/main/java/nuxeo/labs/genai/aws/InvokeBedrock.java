@@ -23,11 +23,16 @@ public class InvokeBedrock {
 
     protected Region region = DEFAULT_REGION;
 
+    // Reminder: as of today (end 2023), Titan is EN only:
+    // "Sorry, this model is only accessible for English only applications. Please consider revising your content to be
+    // in English."
     public static final String MODEL_TITAN_TEXT_EXPRESS_V1 = "amazon.titan-text-express-v1";
+
+    public static final String MODEL_ANTHROPIC_CLAUDE_INSTANT_V1 = "anthropic.claude-instant-v1";
 
     public static final String MODEL_ANTHROPIC_CLAUDE_V2 = "anthropic.claude-v2";
 
-    public static final String DEFAULT_MODEL = MODEL_TITAN_TEXT_EXPRESS_V1;// MODEL_ANTHROPIC_CLAUDE_V2;
+    public static final String DEFAULT_MODEL = MODEL_ANTHROPIC_CLAUDE_INSTANT_V1;// MODEL_TITAN_TEXT_EXPRESS_V1;// ;
 
     protected String modelId = DEFAULT_MODEL;
 
@@ -85,6 +90,7 @@ public class InvokeBedrock {
 
         SdkBytes body = SdkBytes.fromUtf8String(jsonBody.toString());
 
+        System.out.println("INVOKING MODEL " + modelId);
         InvokeModelRequest request = InvokeModelRequest.builder().modelId(modelId).body(body).build();
 
         InvokeModelResponse response = bedrockRuntime.invokeModel(request);
@@ -109,6 +115,7 @@ public class InvokeBedrock {
             jsonBody.put("textGenerationConfig", textGenerationConfig);
             break;
 
+        case MODEL_ANTHROPIC_CLAUDE_INSTANT_V1:
         case MODEL_ANTHROPIC_CLAUDE_V2:
             // See https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-claude.html
             jsonBody.put("prompt", "Human: " + prompt + " Assistant:")
@@ -147,6 +154,7 @@ public class InvokeBedrock {
             result = results.getJSONObject(0).getString("outputText");
             break;
 
+        case MODEL_ANTHROPIC_CLAUDE_INSTANT_V1:
         case MODEL_ANTHROPIC_CLAUDE_V2:
             result = jsonResponse.getString("completion");
             break;

@@ -54,43 +54,50 @@ public class TestInvokeBedrock {
         
         assertTrue(b.getString().length() > result.length());
         
+    }
+
+    @Test
+    public void shouldInvokeBedrockWithClaudeInstantv1Simple() {
         
+        Assume.assumeTrue("Access to AWS not set. Not doing the test",
+                           StringUtils.isNotBlank(System.getenv("AWS_ACCESS_KEY_ID")));
+        
+        InvokeBedrock ibr = new InvokeBedrock();
+        ibr.setModelId(InvokeBedrock.MODEL_ANTHROPIC_CLAUDE_INSTANT_V1);
+        String result = ibr.run("What is the distance between the Earth and the Moon, in kilometers?", null);
+        assertNotNull(result);
+        assertTrue(result.indexOf("384,400") > -1);
+    }
+
+    @Test
+    public void shouldInvokeBedrockWithClaudeInstantv1SimpleFR() {
+        
+        Assume.assumeTrue("Access to AWS not set. Not doing the test",
+                           StringUtils.isNotBlank(System.getenv("AWS_ACCESS_KEY_ID")));
+        
+        InvokeBedrock ibr = new InvokeBedrock();
+        ibr.setModelId(InvokeBedrock.MODEL_ANTHROPIC_CLAUDE_INSTANT_V1);
+        String result = ibr.run("Quelle est la distance de la terre à la lune, en kilometres ?", null);
+        assertNotNull(result);
+        assertTrue(result.indexOf("384 400") > -1);
     }
     
-    @Ignore
     @Test
-    // "Sorry, this model is only accessible for English only applications. Please consider revising your content to be in English."
-    public void shouldSummarizeWithTitanInFR() throws Exception {
+    public void shouldSummarizeWithClaudeInstantv1FR() throws Exception {
 
         Assume.assumeTrue("Access to AWS not set. Not doing the test",
                            StringUtils.isNotBlank(System.getenv("AWS_ACCESS_KEY_ID")));
         
         File testFile = FileUtils.getResourceFileFromContext("to-summarize-1-FR.txt");
         Blob b = new FileBlob(testFile);
-        String prompt = "Please summarize this text:\n" + b.getString();
+        String prompt = "Merci de résumer ce texte:\n" + b.getString();
 
         InvokeBedrock ibr = new InvokeBedrock();
-        ibr.setModelId(InvokeBedrock.MODEL_TITAN_TEXT_EXPRESS_V1);
+        ibr.setModelId(InvokeBedrock.MODEL_ANTHROPIC_CLAUDE_INSTANT_V1);
         String result = ibr.run(prompt, null);
         assertNotNull(result);
         
         assertTrue(b.getString().length() > result.length());
         
-        
-    }
-
-    @Ignore
-    @Test
-    // "Sorry, this model is only accessible for English only applications. Please consider revising your content to be in English."
-    public void shouldInvokeBedrockWithTitanSimpleInFR() {
-
-        Assume.assumeTrue("Access to AWS not set. Not doing the test",
-                           StringUtils.isNotBlank(System.getenv("AWS_ACCESS_KEY_ID")));
-        
-        InvokeBedrock ibr = new InvokeBedrock();
-        ibr.setModelId(InvokeBedrock.MODEL_TITAN_TEXT_EXPRESS_V1);
-        String result = ibr.run("Quelle est la distance de la terre à la lune, en kilometres ?", null);
-        assertNotNull(result);
-        assertTrue(result.indexOf("384,400") > -1);
     }
 }
