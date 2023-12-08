@@ -1,6 +1,10 @@
 package nuxeo.labs.genai.aws;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -8,13 +12,30 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.nuxeo.ecm.core.api.Blob;
+import org.nuxeo.ecm.core.api.NuxeoException;
+import org.nuxeo.ecm.core.api.blobholder.BlobHolder;
+import org.nuxeo.ecm.core.api.blobholder.SimpleBlobHolder;
+import org.nuxeo.ecm.core.convert.api.ConversionException;
+import org.nuxeo.ecm.core.convert.api.ConversionService;
+import org.nuxeo.runtime.api.Framework;
 
+import nuxeo.labs.genai.aws.models.AWSTitan;
+import nuxeo.labs.genai.aws.models.AnthropicClaude;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
+/**
+ * Also see AWS documentation of course. Such as:
+ * About prompts : https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-engineering-guidelines.html
+ * <br>
+ * Warning: The code adds the required tokens. For example, when using Claude, it makes the prompt starts with "Human:"
+ * and ends with "Assistant:"
+ * 
+ * @since 2023
+ */
 public class InvokeBedrock {
 
     private static final Logger log = LogManager.getLogger(InvokeBedrock.class);
@@ -42,7 +63,18 @@ public class InvokeBedrock {
 
     public static final float DEFAULT_TEMPERATURE = 0.8F;
 
+    // Use a lower value to decrease randomness in the response.
     protected float temperature = DEFAULT_TEMPERATURE;
+
+    // "Use a lower value to ignore less probable options. => 0-1"
+    protected Float topP = null;
+
+    // "Specify the maximum number of tokens in the generated response"
+    // Titan: 0-8000, default 512
+    // Claude: 0-4096, default 200. "We recommend a limit of 4,000 tokens for optimal performance"
+    protected Integer responseMaxTokenCount = null;
+
+    protected ArrayList<String> stopSequences = null;
 
     BedrockRuntimeClient bedrockRuntime = null;
 
@@ -54,6 +86,15 @@ public class InvokeBedrock {
         getBedrockRuntime();
         setRegion(region);
         setModelId(modelId);
+    }
+
+    public InvokeBedrock(Region region, String modelId, Float temperature, Float topP, Integer responseMaxTokens) {
+        getBedrockRuntime();
+        setRegion(region);
+        setModelId(modelId);
+        setTemperature(temperature);
+        setTopP(topP);
+        setResponseMaxTokenCount(responseMaxTokens);
     }
 
     protected void getBedrockRuntime() {
@@ -70,6 +111,16 @@ public class InvokeBedrock {
         }
     }
 
+    // null => model will use a default value
+    public void setResponseMaxTokenCount(Integer value) {
+        responseMaxTokenCount = value;
+    }
+
+    // null => model will use a default value
+    public void setTopP(Float value) {
+        topP = value;
+    }
+
     public void setModelId(String modelID) {
         if (StringUtils.isNotBlank(modelId)) {
             this.modelId = modelID;
@@ -82,105 +133,136 @@ public class InvokeBedrock {
         temperature = value;
     }
 
-    public String run(String prompt, Blob blob) {
+    public void setStopSequences(ArrayList<String> values) {
+        stopSequences = values;
+    }
 
+    public void setStopSequences(String... values) {
+        if (values.length == 0) {
+            stopSequences = null;
+        } else {
+            stopSequences = new ArrayList<>(Arrays.asList(values));
+        }
+
+    }
+
+    /**
+     * Extract the text from a blob (typically, pdf, Word), with punctuation
+     * 
+     * @param blob
+     * @return the text in the blob, without styling or formatting.
+     * @since 2023
+     */
+    public static String blobToText(Blob blob) {
+
+        try {
+            ConversionService conversionService = Framework.getService(ConversionService.class);
+            BlobHolder blobHolder = conversionService.convert("any2text", new SimpleBlobHolder(blob), null);
+            Blob resultBlob = blobHolder.getBlob();
+            String string;
+            string = resultBlob.getString();
+            // strip '\0 chars from text, if any
+            if (string.indexOf('\0') >= 0) {
+                string = string.replace("\0", " ");
+            }
+            return string;
+        } catch (ConversionException | IOException e) {
+            throw new NuxeoException("Error extracting text from blob", e);
+        }
+
+    }
+    
+    protected boolean looksLikeTitan() {
+        if(StringUtils.isNotBlank(modelId)) {
+            return modelId.startsWith("amazon.titan");
+        }
+        
+        return false;
+    }
+    
+    protected boolean looksLikeClaude() {
+        if(StringUtils.isNotBlank(modelId)) {
+            return modelId.startsWith("anthropic.claude");
+        }
+        
+        return false;
+    }
+
+    /**
+     * If blob is not null, its text is extracted and appended to the prompt.
+     * <br>
+     * If {@code insertInPromptReplaceTag} is not {@code null} (and not empty), the text of the blob will replace it.
+     * <br>
+     * So, for example, if the prompt is "Answer the question which is between <text> and </text> tags\n\nBlahblah some
+     * context\n\n<text>{HERE_TEXT}</text>\nmore context here\n\n
+     * <br>
+     * => You would then call InvokeBedrock("Answer the question which is between...", blob, "{HERE_TEXT}");
+     * 
+     * @param prompt
+     * @param blob
+     * @param insertInPromptReplaceTag
+     * @return
+     * @since 2023
+     */
+    public String run(String prompt, Blob blob, String insertInPromptReplaceTag) {
+
+        if (blob != null) {
+            String blobText = blobToText(blob);
+            if (StringUtils.isNotBlank(insertInPromptReplaceTag)) {
+                prompt = prompt.replace(insertInPromptReplaceTag, blobText);
+            } else {
+                prompt += "\n\n" + blobText;
+            }
+        }
         this.prompt = prompt;
 
         JSONObject jsonBody = getRequestBodyForModel();
 
         SdkBytes body = SdkBytes.fromUtf8String(jsonBody.toString());
 
-        System.out.println("INVOKING MODEL " + modelId);
+        // System.out.println("====================\nINVOKING MODEL " + modelId);
         InvokeModelRequest request = InvokeModelRequest.builder().modelId(modelId).body(body).build();
 
         InvokeModelResponse response = bedrockRuntime.invokeModel(request);
-
+        
         String result = getStringResultForModel(response);
 
         return result;
     }
 
     protected JSONObject getRequestBodyForModel() {
-        JSONObject jsonBody = new JSONObject();
+
+        RequestParameters params = new RequestParameters(prompt, temperature, topP, responseMaxTokenCount,
+                stopSequences);
 
         switch (modelId) {
         case MODEL_TITAN_TEXT_EXPRESS_V1:
-            // see https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
-            jsonBody.put("inputText", prompt);
-            JSONObject textGenerationConfig = new JSONObject();
-            textGenerationConfig.put("temperature", temperature);
-            // .put("topP", ...)
-            // .put("maxTokenCount", ...)
-            // .put("stopSequences", ...)
-            jsonBody.put("textGenerationConfig", textGenerationConfig);
-            break;
+            AWSTitan titan = new AWSTitan();
+            return titan.getRequestBody(params);
 
         case MODEL_ANTHROPIC_CLAUDE_INSTANT_V1:
         case MODEL_ANTHROPIC_CLAUDE_V2:
-            // See https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-claude.html
-            jsonBody.put("prompt", "Human: " + prompt + " Assistant:")
-                    .put("temperature", temperature)
-                    .put("max_tokens_to_sample", 1024);
-            break;
+            AnthropicClaude claude = new AnthropicClaude();
+            return claude.getRequestBody(params);
 
         default:
-            throw new IllegalArgumentException("Model shoud be Titan or Anthropic-Claude. It is " + modelId);
+            throw new IllegalArgumentException("Model shoud be Titan or Anthropic-Claude, but is " + modelId);
         }
-
-        return jsonBody;
 
     }
 
     protected String getStringResultForModel(InvokeModelResponse response) {
-        String result = null;
-
-        JSONObject jsonResponse = new JSONObject(response.body().asString(StandardCharsets.UTF_8));
-
-        switch (modelId) {
-        case MODEL_TITAN_TEXT_EXPRESS_V1:
-            // {
-            // "inputTextTokenCount": 11,
-            // "results": [
-            // {
-            // "tokenCount": 31,
-            // "outputText": "\nThe distance between the Earth and the Moon is approximately 238,900 mi or 384,400 km.",
-            // "completionReason": "FINISH"
-            // }
-            // ]
-            // }
-            JSONArray results = jsonResponse.getJSONArray("results");
-            // check...
-            // First implementaiton => assume there is at least one
-            result = results.getJSONObject(0).getString("outputText");
-            break;
-
-        case MODEL_ANTHROPIC_CLAUDE_INSTANT_V1:
-        case MODEL_ANTHROPIC_CLAUDE_V2:
-            result = jsonResponse.getString("completion");
-            break;
-
-        default:
-            throw new IllegalArgumentException("Model shoud be Titan or Anthropic-Claude. It is " + modelId);
+        
+        if(looksLikeTitan()) {
+            AWSTitan titan = new AWSTitan();
+            return titan.getStringResult(response);
+        }
+        
+        if(looksLikeClaude()) {
+            AnthropicClaude claude = new AnthropicClaude();
+            return claude.getStringResult(response);
         }
 
-        return result;
+        throw new IllegalArgumentException("Model shoud be AWS-Titan or Anthropic-Claude. It is " + modelId);
     }
-
-    /*
-     * public static void main(String[] args) {
-     * BedrockRuntimeClient runtime = BedrockRuntimeClient.builder().region(Region.US_EAST_1).build();
-     * String prompt = "Hello Claude, how are you?";
-     * JSONObject jsonBody = new JSONObject().put("prompt", "Human: " + prompt + " Assistant:")
-     * .put("temperature", 0.8)
-     * .put("max_tokens_to_sample", 1024);
-     * SdkBytes body = SdkBytes.fromUtf8String(jsonBody.toString());
-     * InvokeModelRequest request = InvokeModelRequest.builder().modelId("anthropic.claude-v2").body(body).build();
-     * InvokeModelResponse response = runtime.invokeModel(request);
-     * JSONObject jsonObject = new JSONObject(response.body().asString(StandardCharsets.UTF_8));
-     * String completion = jsonObject.getString("completion");
-     * System.out.println();
-     * System.out.println(completion);
-     * System.out.println();
-     * }
-     */
 }
