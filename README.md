@@ -18,6 +18,19 @@ If you find this plugin and want to test it:
 > [!IMPORTANT]
 > REMEMBER: This is **W**ork **I**n **P**rogress, using GitHub as backup
 
+ToDo:
+
+* Priority:
+  * Handle text-based blobs (pdf, Word, mainly)
+  * Add automation for easy call from Nuxeo in the UI
+  * Add better result, with error when it occur (model not found, model does not support other languages, ...)
+* Less urgent:
+  * Make a configurable service (list models to use, bu then describe the input/output JSON format expected...)
+  * Make more parameters available to tune the call to the service
+  * Make the cal async
+  * Maybe make a service where other providers can be plugged?
+  * ...
+
 
 ## Support
 
