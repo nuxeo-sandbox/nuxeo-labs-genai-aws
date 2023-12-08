@@ -23,7 +23,7 @@ ToDo:
 * Priority:
   * Handle text-based blobs (pdf, Word, mainly)
   * Add automation for easy call from Nuxeo in the UI
-  * Add better result, with error when it occur (model not found, model does not support other languages, ...)
+  * Add more info to the result, like the error returned by AWS (model not found, model does not support other languages, ...)
 * Less urgent:
   * Make a configurable service (list models to use, bu then describe the input/output JSON format expected...)
   * Make more parameters available to tune the call to the service
