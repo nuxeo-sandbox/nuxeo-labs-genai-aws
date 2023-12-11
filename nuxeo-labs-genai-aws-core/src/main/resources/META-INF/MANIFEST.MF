@@ -6,4 +6,5 @@ Bundle-Version: 1.0.0
 Bundle-Name: nuxeo-labs-genai-aws-core
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: nuxeo.labs.genai.aws.nuxeo-labs-genai-aws-core;singleton=true
-Nuxeo-Component: 
+Nuxeo-Component: ,
+ OSGI-INF/operations-contrib.xml

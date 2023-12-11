@@ -23,6 +23,7 @@
 
   <modules>
     <module>nuxeo-labs-genai-aws-core</module>
+    <module>nuxeo-labs-genai-aws-package</module>
   </modules>
 
   <scm />
@@ -38,6 +39,11 @@
       <dependency>
         <groupId>nuxeo.labs.genai.aws</groupId>
         <artifactId>nuxeo-labs-genai-aws-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>nuxeo.labs.genai.aws</groupId>
+        <artifactId>nuxeo-labs-genai-aws-package</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

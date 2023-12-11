@@ -21,6 +21,9 @@ package nuxeo.labs.genai.aws;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 /**
  * @since TODO
  */
@@ -47,31 +50,82 @@ public class RequestParameters {
             ArrayList<String> stopSequences) {
         super();
 
-        this.prompt = prompt;
+        setPrompt(prompt);
         setTemperature(temperature);
         setTopP(topP);
         setResponseMaxTokenCount(responseMaxTokenCount);
         setStopSequences(stopSequences);
     }
 
-    public void setTemperature(Float value) {
-        if(value == null) {
-            temperature = DEFAULT_TEMPERATURE;
-        }
-        temperature = value;
+    /**
+     * See {@code RequestParameters(JSONObject json)}
+     * 
+     * @param jsonString
+     */
+    public RequestParameters(String jsonString) {
+        this(new JSONObject(jsonString));
     }
 
-    // null => model will use a default value
-    public void setTopP(Float value) {
-        topP = value;
+    /**
+     * The properties of the json <b>must</b>, of course, match the variables: temperature, topP, responseMaxTokenCount
+     * and stopSequences
+     * 
+     * @param json
+     */
+    public RequestParameters(JSONObject json) {
+        
+        setPrompt(json.optString("prompt", null));
+        
+        float temperature = json.optFloat("temperature", -1F);
+        if(temperature == -1F) {
+            setTemperature(null);
+        } else {
+            setTemperature(temperature);
+        }
+        
+        float topP = json.optFloat("topP", -1F);
+        if(topP == -1F) {
+            setTopP(null);
+        } else {
+            setTopP(topP);
+        }
+        
+        int responseMaxTokenCount= json.optInt("responseMaxTokenCount", -1);
+        if(responseMaxTokenCount == -1) {
+            setResponseMaxTokenCount(null);
+        } else {
+            setResponseMaxTokenCount(responseMaxTokenCount);
+        }
+        
+        JSONArray sequences = json.optJSONArray("stopSequences");
+        ArrayList<String> list = null;
+        if(sequences != null) {
+            list = new ArrayList<>();
+            for (int i = 0; i < sequences.length(); i++) {
+                list.add(sequences.getString(i));
+            }
+            setStopSequences(list);
+        }
+        setStopSequences(list);
+    }
+    
+    public void setPrompt(String value) {
+        prompt = value;
     }
 
     public String getPrompt() {
         return prompt;
     }
 
+    public void setTemperature(Float value) {
+        if (value == null) {
+            temperature = DEFAULT_TEMPERATURE;
+        }
+        temperature = value;
+    }
+
     public float getTemperature() {
-        if(temperature == null) {
+        if (temperature == null) {
             temperature = DEFAULT_TEMPERATURE;
         }
         return temperature;
@@ -81,17 +135,22 @@ public class RequestParameters {
         return topP;
     }
 
-    public Integer getResponseMaxTokenCount() {
-        return responseMaxTokenCount;
+    // null => model will use a default value
+    public void setTopP(Float value) {
+        topP = value;
     }
 
-    public ArrayList<String> getStopSequences() {
-        return stopSequences;
+    public Integer getResponseMaxTokenCount() {
+        return responseMaxTokenCount;
     }
 
     // null => model will use a default value
     public void setResponseMaxTokenCount(Integer value) {
         responseMaxTokenCount = value;
+    }
+
+    public ArrayList<String> getStopSequences() {
+        return stopSequences;
     }
 
     public void setStopSequences(ArrayList<String> values) {
@@ -106,7 +165,7 @@ public class RequestParameters {
         }
 
     }
-    
+
     public boolean hasStopSequences() {
         return stopSequences != null && stopSequences.size() > 0;
     }

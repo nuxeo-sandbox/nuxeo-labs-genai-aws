@@ -1,15 +1,12 @@
 package nuxeo.labs.genai.aws;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.NuxeoException;
@@ -103,6 +100,16 @@ public class InvokeBedrock {
         }
     }
 
+    public void setParameters(RequestParameters params) {
+
+        prompt = params.getPrompt();
+        temperature = params.getTemperature();
+        topP = params.getTopP();
+        responseMaxTokenCount = params.getResponseMaxTokenCount();
+        stopSequences = params.getStopSequences();
+
+    }
+
     public void setRegion(Region region) {
         if (region != null) {
             this.region = region;
@@ -171,20 +178,20 @@ public class InvokeBedrock {
         }
 
     }
-    
+
     protected boolean looksLikeTitan() {
-        if(StringUtils.isNotBlank(modelId)) {
+        if (StringUtils.isNotBlank(modelId)) {
             return modelId.startsWith("amazon.titan");
         }
-        
+
         return false;
     }
-    
+
     protected boolean looksLikeClaude() {
-        if(StringUtils.isNotBlank(modelId)) {
+        if (StringUtils.isNotBlank(modelId)) {
             return modelId.startsWith("anthropic.claude");
         }
-        
+
         return false;
     }
 
@@ -197,6 +204,9 @@ public class InvokeBedrock {
      * context\n\n<text>{HERE_TEXT}</text>\nmore context here\n\n
      * <br>
      * => You would then call InvokeBedrock("Answer the question which is between...", blob, "{HERE_TEXT}");
+     * <br>
+     * {@code prompt} can be {@code null}: This would be the case os setParameters has been called previously, with a
+     * prompt. If it is not @code null}, then it replaces any previous value.
      * 
      * @param prompt
      * @param blob
@@ -214,7 +224,9 @@ public class InvokeBedrock {
                 prompt += "\n\n" + blobText;
             }
         }
-        this.prompt = prompt;
+        if (prompt != null) {
+            this.prompt = prompt;
+        }
 
         JSONObject jsonBody = getRequestBodyForModel();
 
@@ -224,7 +236,7 @@ public class InvokeBedrock {
         InvokeModelRequest request = InvokeModelRequest.builder().modelId(modelId).body(body).build();
 
         InvokeModelResponse response = bedrockRuntime.invokeModel(request);
-        
+
         String result = getStringResultForModel(response);
 
         return result;
@@ -235,30 +247,28 @@ public class InvokeBedrock {
         RequestParameters params = new RequestParameters(prompt, temperature, topP, responseMaxTokenCount,
                 stopSequences);
 
-        switch (modelId) {
-        case MODEL_TITAN_TEXT_EXPRESS_V1:
+        if (looksLikeTitan()) {
             AWSTitan titan = new AWSTitan();
             return titan.getRequestBody(params);
+        }
 
-        case MODEL_ANTHROPIC_CLAUDE_INSTANT_V1:
-        case MODEL_ANTHROPIC_CLAUDE_V2:
+        if (looksLikeClaude()) {
             AnthropicClaude claude = new AnthropicClaude();
             return claude.getRequestBody(params);
-
-        default:
-            throw new IllegalArgumentException("Model shoud be Titan or Anthropic-Claude, but is " + modelId);
         }
+
+        throw new IllegalArgumentException("Model shoud be Titan or Anthropic-Claude, but is " + modelId);
 
     }
 
     protected String getStringResultForModel(InvokeModelResponse response) {
-        
-        if(looksLikeTitan()) {
+
+        if (looksLikeTitan()) {
             AWSTitan titan = new AWSTitan();
             return titan.getStringResult(response);
         }
-        
-        if(looksLikeClaude()) {
+
+        if (looksLikeClaude()) {
             AnthropicClaude claude = new AnthropicClaude();
             return claude.getStringResult(response);
         }

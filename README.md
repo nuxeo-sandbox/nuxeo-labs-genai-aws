@@ -3,33 +3,98 @@
 > [!IMPORTANT]
 > This is **W**ork **I**n **P**rogress, using GitHub as backup
 
-This plugin allows for calling Generative AI on AWS, using Bedrock.
+This plugin allows for calling Generative AI on AWS, using [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html), using Amazon Java SDK.
 
-First Use Case is about summarizing a text.
+First Use Cases (Jan. 2024) are about summarizing a text and asking any question. For these purposes, the plugin provides 2 Automation Operations (see below).
 
-For now, we use Titan, as first test.
+## AWS Setup • Warnings • Known Limitations
 
-If you find this plugin and want to test it:
+### AWS Authentication
+The plugin expects the usual AWS environment variables to be set (it does not rely on nuxeo.conf parameters). Notice that if your Nuxeo instance runs on AWS, these are already set for you:
 
-* Setup the correct environment so as to be able to call AWS
-* Enable/Activate the following models on AWS: `amazon.titan-text-express-v1` and `anthropic.claude-v2`
-* Run the unit tests. Notice we use only Titan, so far.
+* `AWS_ACCESS_KEY_ID`
+* `AWS_SECRET_ACCESS_KEY`
+* `AWS_SESSION_TOKEN`
+* and `AWS_SESSION_TOKEN`
+
+### Amazon Bedrock Availability
+
+As of December 2023, Amazon Bedrock is supported only in the following regions (see [documentation](https://docs.aws.amazon.com/general/latest/gr/bedrock.html#bedrock_region)):
+
+* us-east-1 (N. Virginia)
+* us-west-2 (Oregon)
+* ap-southeast-1 (Singapore)
+* ap-northeast-1 (Tokyo)
+* eu-central-1 (Frankfurt)
+
+ℹ️ The operations accept a `awsRegion` parameter. When a new region is available for Amazon Bedrock, there is no need to release a new version of this plugin, you can just change parameter(s) in your configuration.
+
+It is, of course, your responsibility to [use the AWS Console](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess) to activate access to the model(s) you plan to use.
+
+
+### Supported Models
+The plugin has been tested (see unit tests) successfully with:
+* `amazon.titan-text-express-v1`,
+* `amazon.titan-text-express-v1`
+* `anthropic.claude-instant-v1`
+* `anthropic.claude-v2`.
+
+Each set of models (text-Titan, text-Claude) has its own input parameters and response format, this is the main reason why we support only these, but feel free to add new ones :-)
+
 
 > [!IMPORTANT]
-> REMEMBER: This is **W**ork **I**n **P**rogress, using GitHub as backup
+> Not all models are supported in all regions: Check models availability with Amazon Bedrock [documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html)
 
-ToDo:
 
-* Priority:
-  * Handle text-based blobs (pdf, Word, mainly)
-  * Add automation for easy call from Nuxeo in the UI
-  * Add more info to the result, like the error returned by AWS (model not found, model does not support other languages, ...)
-* Less urgent:
-  * Make a configurable service (list models to use, bu then describe the input/output JSON format expected...)
-  * Make more parameters available to tune the call to the service
-  * Make the cal async
-  * Maybe make a service where other providers can be plugged?
-  * ...
+## Operations
+
+### `Bedrock.Summarize` (category Services)
+Summarize a text or a blob (text, PDF, Word, any content that can be converted to plain text). Return a `Blob`, `text/plain`. This blob can be previewed in the UI, and its text can be get using the `getString()` method of the blob.
+
+#### input
+Can be `void`/`null` or a `Document`.
+* If `void`/`null`, the `text` parameter is required and is the content to summarize
+* If `input` is a `Document`, then `text` is ignored and `xpath` is required. The blob found at `xpath` is the content to summarize
+
+
+#### Parameters:
+* `modelId`, required. Default is `"anthropic.claude-instant-v1"`. **IMPORTANT** See _Supported Models_ above
+* `awsRegion`, required. Default is `"us-east-1"`
+* `text`: Required if `input` is `void`/`null`. The text to summarize.
+* `xpath`: Required if `input` is a `Document`. The XPath of the blob to summarize
+* `language`, required, because it changes the prompt. We support only English ('en') and French ('fr'). For any other language, use `Bedrock.Run`.
+* `numberOfSentences`, optional. If passed, changes the prompt and asks for a summary in `numberOfSentences sentences.
+* `modelParams`, optional. If passed, it is a JSON string containing an object with values for tuning the model: `temperature` (0-1), `topP (0-1), `responseMaxTokenCount` (integer), `stopSequences` (list of strings). ℹ️ This is an advanced usage. Si AWS Bedrock documentation.
+
+Notice this is the same a using the `Bedrock.Run` operation, we just provide the prompt, like "Summarize the following text:", or "Merci de resumer ce texte en 3 phrases :"
+
+
+### `Bedrock.Run` (category Services)
+
+The operation runs a model, returns the response as Blob (text/plain). This blob can be previewed in the UI, and its text can be get using the `getString()` method of the blob.
+
+#### input
+Optional.
+* If `void`/`null`, the operation only sends the `prompt` parameter.
+* If `input` is a `Document`, _and_ it has a blob at the `xpath` parameter, it is then _appended_ (after converstion to plain text) to the prompt (with 2 lines before and after).
+
+#### Parameters
+* `prompt`, required. The prompt to send to the model ("What is the distance between the Earth and the Moon?". IN different languages if the model you are calling supports other languages)
+* `modelId`, required. Default is `"anthropic.claude-instant-v1"`. **IMPORTANT** See _Supported Models_ above
+* `awsRegion`, required. Default is `"us-east-1"`
+* `xpath`, optional. If `input` is a `Document` and `xpath` is passed and contains a blob, it is converted to text and added to the prompt.
+* `modelParams`, optional. If passed, it is a JSON string containing an object with values for tuning the model: `temperature` (0-1), `topP (0-1), `responseMaxTokenCount` (integer), `stopSequences` (list of strings). ℹ️ This is an advanced usage. Si AWS Bedrock documentation.
+
+
+## Build
+
+```
+git clone https://github.com/nuxeo-sandbox/nuxeo-labs-genai-aws.git
+cd nuxeo-labs-genai-aws
+mvn clean install
+```
+
+The marketplace package is at `nuxeo-labs-genai-aws/target/nuxeo-labs-genai-aws-package-{VERSION}.zip`
 
 
 ## Support

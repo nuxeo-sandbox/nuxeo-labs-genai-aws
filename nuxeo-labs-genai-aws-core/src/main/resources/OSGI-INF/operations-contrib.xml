@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<component name="nuxeo.labs.genai.aws.operations.operations">
+
+  <extension point="operations" target="org.nuxeo.ecm.core.operation.OperationServiceComponent">
+    <operation class="nuxeo.labs.genai.aws.operations.BedrockSummarizeOp"/>
+    <operation class="nuxeo.labs.genai.aws.operations.BedrockRunOp"/>
+  </extension>
+
+</component>
