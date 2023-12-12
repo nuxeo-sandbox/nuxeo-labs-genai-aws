@@ -3,7 +3,7 @@
   <parent>
     <groupId>nuxeo.labs.genai.aws</groupId>
     <artifactId>nuxeo-labs-genai-aws-parent</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 

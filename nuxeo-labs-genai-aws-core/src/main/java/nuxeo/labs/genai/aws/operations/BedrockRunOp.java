@@ -1,5 +1,7 @@
 package nuxeo.labs.genai.aws.operations;
 
+import java.util.UUID;
+
 import org.apache.commons.lang3.StringUtils;
 import org.nuxeo.ecm.automation.core.Constants;
 import org.nuxeo.ecm.automation.core.annotations.Context;
@@ -63,9 +65,12 @@ public class BedrockRunOp {
             ibr.setParameters(params);
         }
 
-        String result = ibr.run(prompt, blob, null);
+        String resultStr = ibr.run(prompt, blob, null);
 
-        return new StringBlob(result, "text/plain");
+        Blob result = new StringBlob(resultStr, "text/plain");
+        result.setFilename(UUID.randomUUID().toString() + ".txt");
+
+        return result;
     }
 
     @OperationMethod

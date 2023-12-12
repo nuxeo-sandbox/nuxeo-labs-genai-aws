@@ -218,10 +218,21 @@ public class InvokeBedrock {
 
         if (blob != null) {
             String blobText = blobToText(blob);
-            if (StringUtils.isNotBlank(insertInPromptReplaceTag)) {
-                prompt = prompt.replace(insertInPromptReplaceTag, blobText);
+            if(prompt == null) {
+                prompt = blobText;
             } else {
-                prompt += "\n\n" + blobText;
+                if (StringUtils.isNotBlank(insertInPromptReplaceTag)) {
+                    prompt = prompt.replace(insertInPromptReplaceTag, blobText);
+                } else {
+                    if(!prompt.endsWith("\n\n")) {
+                        if(!prompt.endsWith("\n")) {
+                            prompt += "\n";
+                        } else {
+                            prompt += "\n\n";
+                        }
+                    }
+                    prompt += blobText;
+                }
             }
         }
         if (prompt != null) {

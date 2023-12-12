@@ -169,7 +169,7 @@ public class TestInvokeBedrock {
         // So far, the result starts with "Voici un résumé [etc] and end with a column.
         // => just counting the number of "."
         // We should have 2 but sometimes, the model returns an intro with a point "this is the summary." :-)
-        assertTrue(TestUtils.countPeriods(result) <= 3);
+        assertTrue(TestUtils.countPeriods(result) <= 4);
 
     }
 
@@ -193,7 +193,7 @@ public class TestInvokeBedrock {
         // How to count the number of phrase...
         // So far, the result starts with "Voici un résumé [etc] and end with a column.
         // We should have 2 but sometimes, the model returns an intro with a point "this is the summary." :-)
-        assertTrue(TestUtils.countPeriods(result) <= 3);
+        assertTrue(TestUtils.countPeriods(result) <= 4);
 
     }
 

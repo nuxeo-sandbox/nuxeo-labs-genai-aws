@@ -1,5 +1,7 @@
 package nuxeo.labs.genai.aws.operations;
 
+import java.util.UUID;
+
 import org.apache.commons.lang3.StringUtils;
 import org.nuxeo.ecm.automation.core.Constants;
 import org.nuxeo.ecm.automation.core.annotations.Context;
@@ -52,7 +54,7 @@ public class BedrockSummarizeOp {
     protected String xpath = "file:content";
 
     @Param(name = "numberOfSentences", required = false)
-    protected Integer numberOfSentences;
+    protected Double numberOfSentences;
 
     @Param(name = "language", required = true, values = { "en" })
     protected String language = "en";
@@ -100,7 +102,10 @@ public class BedrockSummarizeOp {
 
         String summary = ibr.run(prompt, blob, null);
 
-        return new StringBlob(summary, "text/plain");
+        Blob result = new StringBlob(summary, "text/plain");
+        result.setFilename(UUID.randomUUID().toString() + ".txt");
+
+        return result;
     }
 
     @OperationMethod
