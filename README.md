@@ -5,7 +5,7 @@
 
 This plugin allows for calling Generative AI on AWS, using [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html), using Amazon Java SDK.
 
-First Use Cases (Jan. 2024) are about summarizing a text and asking any question. For these purposes, the plugin provides 2 Automation Operations (see below).
+First Use Cases (Jan. 2024) are about summarizing a text and asking any question. For these purposes, the plugin provides some Automation Operations (see below).
 
 ## AWS Setup • Warnings • Known Limitations
 
@@ -84,6 +84,27 @@ Optional.
 * `awsRegion`, required. Default is `"us-east-1"`
 * `xpath`, optional. If `input` is a `Document` and `xpath` is passed and contains a blob, it is converted to text and added to the prompt.
 * `modelParams`, optional. If passed, it is a JSON string containing an object with values for tuning the model: `temperature` (0-1), `topP (0-1), `responseMaxTokenCount` (integer), `stopSequences` (list of strings). ℹ️ This is an advanced usage. Si AWS Bedrock documentation.
+
+### `Bedrock.RunRaw` (category Services)
+
+The operation runs a model with is expected parameters, returns the raw Java `InvokeModelResponse` object.
+
+This operation allows for calling a model not yet supported by the plugin in terms of ease-of-use, pre-formatting, etc.
+
+#### input
+`void`, no input is expected
+
+#### Parameters
+* `modelId`, required.
+* `awsRegion`, required.
+* `requestBody`, required.
+  * JSON string containing all and everything expected by the model.
+  * Caller is in charge of filling it with the values expected by the model (see [Inference Parameters](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html)), with the exact field names, the required fields, etc.
+  *  For example, if a blob must be added to a prompt, caller must do it itself (typically, converting it to text using the any2pdf converter)
+
+The operation returns the `InvokeModelResponse` Java object as received, caller is in charge of using the misc. `InvokeModelResponse` methods to get the details. See [its JavaDoc](https://javadoc.io/static/software.amazon.awssdk/bedrockruntime/2.21.12/index.html) (and usual warning: check the version)
+
+ℹ️ Because it returns the raw `InvokeModelResponse`, this operation should not be called from the frontend which can't handle Java objects.
 
 
 ## Build

@@ -242,6 +242,28 @@ public class InvokeBedrock {
         return result;
     }
 
+    /**
+     * This method allows for calling any model. No preparation/filter/check is done: Caller is responsible for
+     * providing everything in the requestBody, according to the object(s) expected by the model.
+     * <br>
+     * The response is the raw {@code InvokeModelResponse} received, caller is in charge of getting values from it using its APIs.
+     * 
+     * @param requestBody
+     * @return the InvokeModelResponse
+     * @since 2023
+     */
+    public InvokeModelResponse run(JSONObject requestBody) {
+
+        SdkBytes body = SdkBytes.fromUtf8String(requestBody.toString());
+
+        // System.out.println("====================\nINVOKING MODEL " + modelId);
+        InvokeModelRequest request = InvokeModelRequest.builder().modelId(modelId).body(body).build();
+
+        InvokeModelResponse response = bedrockRuntime.invokeModel(request);
+
+        return response;
+    }
+
     protected JSONObject getRequestBodyForModel() {
 
         RequestParameters params = new RequestParameters(prompt, temperature, topP, responseMaxTokenCount,

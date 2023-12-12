@@ -8,6 +8,7 @@ import java.io.File;
 import java.nio.charset.Charset;
 
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONObject;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +25,7 @@ import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
 
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
 @RunWith(FeaturesRunner.class)
 @Features({ PlatformFeature.class })
@@ -166,7 +168,8 @@ public class TestInvokeBedrock {
         // How to count the number of phrase...
         // So far, the result starts with "Voici un résumé [etc] and end with a column.
         // => just counting the number of "."
-        assertEquals(2, TestUtils.countPeriods(result));
+        // We should have 2 but sometimes, the model returns an intro with a point "this is the summary." :-)
+        assertTrue(TestUtils.countPeriods(result) <= 3);
 
     }
 
@@ -187,10 +190,37 @@ public class TestInvokeBedrock {
         String originalText = InvokeBedrock.blobToText(blob);
         assertTrue(originalText.length() > result.length());
 
-     // How to count the number of phrase...
+        // How to count the number of phrase...
         // So far, the result starts with "Voici un résumé [etc] and end with a column.
-        // => just counting the number of "."
+        // We should have 2 but sometimes, the model returns an intro with a point "this is the summary." :-)
         assertTrue(TestUtils.countPeriods(result) <= 3);
 
+    }
+
+    @Test
+    public void testRunRawSimple() throws Exception {
+
+        InvokeBedrock ibr = new InvokeBedrock();
+        ibr.setModelId(InvokeBedrock.MODEL_ANTHROPIC_CLAUDE_INSTANT_V1);
+        ibr.setRegion(Region.US_EAST_1);
+
+        JSONObject jsonBody = new JSONObject();
+        String prompt = "What is the distance between the Earth and the Moon, in kilometers?";
+        // Filling fields as expected by Claude
+        jsonBody.put("prompt", "Human: " + prompt + "\n\nAssistant: ")
+                .put("temperature", 0.7)
+                .put("top_p", 0.5)
+                .put("max_tokens_to_sample", 500);
+        
+        InvokeModelResponse response = ibr.run(jsonBody);
+        assertNotNull(response);
+        
+        assertEquals(200, response.sdkHttpResponse().statusCode());
+        
+        String responseBodyStr = response.body().asUtf8String();
+        JSONObject responseBodyJson = new JSONObject(responseBodyStr);
+        String responseStr = responseBodyJson.getString("completion");
+        assertTrue(responseStr.indexOf("384,400") > -1);
+        
     }
 }
