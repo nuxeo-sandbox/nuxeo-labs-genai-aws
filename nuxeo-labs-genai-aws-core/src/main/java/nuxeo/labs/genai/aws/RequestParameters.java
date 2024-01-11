@@ -25,7 +25,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * @since TODO
+ * RequestParameters helps normalize input/output when calling a model. Each model has its own naming for
+ * properties/parameters (one has stopSequences, another stop_sequences, etc.). To be able to call different
+ * models, use this class, then pass it to the a specialize model that implements {@code RequestResponseHandlers}.
+ * <br>
+ * See for example {@code AnthropicClaude} or {@code AWSTitan}
+ * 
+ * @since 2023
  */
 public class RequestParameters {
 
@@ -73,33 +79,33 @@ public class RequestParameters {
      * @param json
      */
     public RequestParameters(JSONObject json) {
-        
+
         setPrompt(json.optString("prompt", null));
-        
+
         float temperature = json.optFloat("temperature", -1F);
-        if(temperature == -1F) {
+        if (temperature == -1F) {
             setTemperature(null);
         } else {
             setTemperature(temperature);
         }
-        
+
         float topP = json.optFloat("topP", -1F);
-        if(topP == -1F) {
+        if (topP == -1F) {
             setTopP(null);
         } else {
             setTopP(topP);
         }
-        
-        int responseMaxTokenCount= json.optInt("responseMaxTokenCount", -1);
-        if(responseMaxTokenCount == -1) {
+
+        int responseMaxTokenCount = json.optInt("responseMaxTokenCount", -1);
+        if (responseMaxTokenCount == -1) {
             setResponseMaxTokenCount(null);
         } else {
             setResponseMaxTokenCount(responseMaxTokenCount);
         }
-        
+
         JSONArray sequences = json.optJSONArray("stopSequences");
         ArrayList<String> list = null;
-        if(sequences != null) {
+        if (sequences != null) {
             list = new ArrayList<>();
             for (int i = 0; i < sequences.length(); i++) {
                 list.add(sequences.getString(i));
@@ -108,7 +114,7 @@ public class RequestParameters {
         }
         setStopSequences(list);
     }
-    
+
     public void setPrompt(String value) {
         prompt = value;
     }
