@@ -83,7 +83,7 @@ Optional.
 * `modelId`, required. Default is `"anthropic.claude-instant-v1"`. **IMPORTANT** See _Supported Models_ above
 * `awsRegion`, required. Default is `"us-east-1"`
 * `xpath`, optional. If `input` is a `Document` and `xpath` is passed and contains a blob, it is converted to text and added to the prompt.
-* `modelParams`, optional. If passed, it is a JSON string containing an object with values for tuning the model: `temperature` (0-1), `topP (0-1), `responseMaxTokenCount` (integer), `stopSequences` (list of strings). ℹ️ This is an advanced usage. Si AWS Bedrock documentation.
+* `modelParams`, optional. If passed, it is a JSON string containing an object with values for tuning the model. For example, `temperature` (0-1), `topP` (0-1), `responseMaxTokenCount` (integer), `stopSequences` (list of strings). ℹ️ This is an advanced usage. Si AWS Bedrock documentation.
 
 ### `Bedrock.RunRaw` (category Services)
 
