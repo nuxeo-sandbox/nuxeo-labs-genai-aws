@@ -1,7 +1,9 @@
 # nuxeo-labs-genai-aws
 
-> [!IMPORTANT]
-> This is **W**ork **I**n **P**rogress, using GitHub as backup
+> [!CAUTION]
+> This plugin is discontinued, use [nuxeo-aws-bedrock-connector](https://github.com/nuxeo-sandbox/nuxeo-aws-bedrock-connector) instead
+
+<hr>
 
 This plugin allows for calling Generative AI on AWS, using [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html), using Amazon Java SDK.
 
